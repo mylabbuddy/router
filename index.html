@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vanilla JS Dynamic Router</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Set up Tailwind configuration for the Inter font and custom colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary-500': '#3b82f6', // blue-500
+                        'primary-600': '#2563eb', // blue-600
+                        'neutral-100': '#f5f5f5', // gray-100
+                        'neutral-800': '#1f2937', // gray-800
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Apply Inter font globally and ensure clean padding */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Tailwind gray-100 */
+        }
+    </style>
+</head>
+<body class="min-h-screen antialiased">
+
+    <!-- Main Application Container -->
+    <div class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <!-- Header/Navigation Bar -->
+        <header class="bg-white shadow-md rounded-xl mb-8 p-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-neutral-800">My Lab Buddy</h1>
+            <nav>
+                <!-- Always link back to the root -->
+                <a href="/" data-link class="text-primary-500 hover:text-primary-600 font-medium transition duration-150">Home</a>
+            </nav>
+        </header>
+
+        <!-- Dynamic Content Area -->
+        <main id="content-container" class="bg-white shadow-lg rounded-xl p-6 sm:p-10 min-h-[500px] flex flex-col justify-start">
+            <!-- Content is rendered here by JavaScript -->
+            <div class="text-center text-gray-400">Loading content...</div>
+        </main>
+
+    </div>
+
+    <script>
+        // --- 1. DATA SOURCE (Simulated JSON File System) ---
+        const ARTICLES = [
+            { id: 1, title: "The Art of Minimalist Design", author: "Jane Doe", date: "2024-01-15", content: "Minimalist design focuses on the bare essentials, maximizing the impact of limited elements. It emphasizes clarity, purpose, and a 'less is more' philosophy. This article demonstrates how simplicity in structure can lead to powerful user experiences and lightweight codebases, just like this single-file app.", tags: ["design", "minimalism", "ux"] },
+            { id: 2, title: "Dynamic Client-Side Routing", author: "John Smith", date: "2024-03-22", content: "Client-side routing allows for seamless navigation within a single page application (SPA) without triggering a full page reload from the server. By using the History API (specifically `history.pushState`), we can maintain clean, shareable URLs while dynamically swapping out content, offering a fast and modern user experience.", tags: ["js", "routing", "spa"] },
+            { id: 3, title: "A Simple Guide to Vanilla JS", author: "Alice Brown", date: "2024-05-01", content: "Vanilla JS refers to plain JavaScript without any libraries or frameworks. It is excellent for learning core fundamentals, keeping projects lightweight, and avoiding unnecessary dependencies. This entire routing system, despite its power, is built on pure, unadulterated JavaScript.", tags: ["js", "fundamentals", "webdev"] }
+        ];
+
+        // --- 2. ROUTER LOGIC ---
+        const contentContainer = document.getElementById('content-container');
+
+        // Function to handle internal navigation via History API
+        const navigate = (path) => {
+            // Check if the path is the same as the current path to prevent unnecessary pushes
+            if (window.location.pathname !== path) {
+                // Update URL without reloading the page
+                history.pushState(null, null, path);
+                // Render the new page content
+                router();
+            }
+        };
+
+        // Main router function to load content based on the current URL
+        const router = () => {
+            const path = window.location.pathname;
+
+            // Define the routes and their rendering logic
+            let html = '';
+            
+            if (path === '/') {
+                // --- HOME/LIST VIEW ROUTE ---
+                html = renderListView();
+            } else if (path.startsWith('/article/')) {
+                // --- DETAIL VIEW ROUTE (e.g., /article/1) ---
+                const parts = path.split('/');
+                const articleId = parseInt(parts[2]);
+                html = renderDetailView(articleId);
+            } else {
+                // --- 404 NOT FOUND ROUTE ---
+                html = renderNotFound();
+            }
+
+            // Inject the generated HTML into the content container
+            contentContainer.innerHTML = html;
+        };
+
+        // --- 3. TEMPLATE RENDERING FUNCTIONS ---
+
+        // Renders the main list of articles
+        const renderListView = () => {
+            return `
+                <h2 class="text-3xl font-extrabold text-neutral-800 mb-6">Our Latest Articles</h2>
+                <p class="text-lg text-gray-500 mb-8">Click any article below to see dynamic content loaded via client-side routing.</p>
+                
+                <div class="space-y-4">
+                    ${ARTICLES.map(article => `
+                        <div class="p-4 bg-neutral-100 rounded-lg shadow-sm hover:shadow-md transition duration-300">
+                            <h3 class="text-xl font-semibold text-primary-500">${article.title}</h3>
+                            <p class="text-sm text-gray-600 mb-2">By ${article.author} on ${article.date}</p>
+                            <a href="/article/${article.id}" data-link class="text-sm font-medium text-primary-600 hover:underline">
+                                Read Article &rarr;
+                            </a>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        };
+
+        // Renders a specific article detail page
+        const renderDetailView = (id) => {
+            const article = ARTICLES.find(a => a.id === id);
+
+            if (!article) {
+                return renderNotFound();
+            }
+
+            return `
+                <div class="pb-4 border-b border-gray-200 mb-6">
+                    <h2 class="text-4xl font-extrabold text-neutral-800 mb-2">${article.title}</h2>
+                    <p class="text-sm text-gray-500">By <span class="font-medium">${article.author}</span> | Published on ${article.date}</p>
+                </div>
+
+                <div class="prose max-w-none text-gray-700 leading-relaxed mb-8">
+                    <p class="text-lg">${article.content}</p>
+                </div>
+
+                <div class="flex flex-wrap gap-2 mb-8">
+                    ${article.tags.map(tag => `<span class="px-3 py-1 text-xs font-medium bg-primary-500/10 text-primary-600 rounded-full">${tag}</span>`).join('')}
+                </div>
+
+                <a href="/" data-link class="inline-flex items-center text-primary-500 hover:text-primary-600 font-medium transition duration-150 mt-auto">
+                    &larr; Back to Article List
+                </a>
+            `;
+        };
+
+        // Renders the 404 page
+        const renderNotFound = () => {
+            return `
+                <div class="text-center py-20">
+                    <p class="text-6xl font-bold text-gray-300 mb-4">404</p>
+                    <h2 class="text-3xl font-extrabold text-neutral-800 mb-4">Page Not Found</h2>
+                    <p class="text-lg text-gray-500 mb-6">The page you are looking for does not exist.</p>
+                    <a href="/" data-link class="inline-flex items-center px-4 py-2 bg-primary-500 text-white font-semibold rounded-lg shadow-md hover:bg-primary-600 transition duration-150">
+                        Go Home
+                    </a>
+                </div>
+            `;
+        };
+
+        // --- 4. EVENT LISTENERS AND INITIALIZATION ---
+
+        // Listener for back/forward browser buttons
+        window.addEventListener('popstate', router);
+
+        // Listener for all clicks on the document
+        document.addEventListener('click', e => {
+            // Find the closest ancestor element that has the 'data-link' attribute
+            const target = e.target.closest('[data-link]');
+            
+            if (target && target.tagName === 'A') {
+                // Prevent the default link behavior (full page reload)
+                e.preventDefault();
+                
+                // Get the URL path from the href attribute
+                const path = target.getAttribute('href');
+                
+                // Navigate to the new path
+                navigate(path);
+            }
+        });
+
+        // Initialize the router on page load.
+        // If the user navigates directly to a path (e.g., /article/1), the router handles it.
+        router();
+
+    </script>
+</body>
+</html>
